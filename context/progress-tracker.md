@@ -69,13 +69,37 @@ change.
     `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL`)
   - `npm run build` passes cleanly
 
+- **Editor Home + Project Dialogs (spec: 04-project-dialoge)**
+  - Created `lib/projects.ts` — `Project` type + 5 mock
+    entries (3 owned, 2 shared)
+  - Created `hooks/use-project-dialogs.ts` — centralised
+    hook for dialog kind, target project, form value,
+    loading state, and live slug derivation
+  - Created `components/editor/dialogs/create-project-dialog.tsx`
+    — name input + live slug preview below input
+  - Created `components/editor/dialogs/rename-project-dialog.tsx`
+    — prefilled input, `autoFocus`, Enter submits
+  - Created `components/editor/dialogs/delete-project-dialog.tsx`
+    — destructive confirm, no input
+  - Updated `app/editor/page.tsx` — centered heading +
+    description + "New Project" button → Create dialog
+  - Updated `components/editor/project-sidebar.tsx` —
+    project list with name + slug, ⋯ action menu
+    (rename / delete) for owned projects only; shared
+    projects show no actions; mobile backdrop scrim +
+    tap-outside closes sidebar
+  - Updated `components/editor/editor-shell.tsx` — wires
+    single `useProjectDialogs` instance; all three dialogs
+    rendered at shell level; mock projects passed to sidebar
+  - `npm run build` passes cleanly
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Next feature spec (04-…)
+- Next feature spec (05-…)
 
 ## Open Questions
 

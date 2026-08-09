@@ -1,24 +1,56 @@
 "use client"
 
-import { X, Plus } from "lucide-react"
+import { useEffect, useState } from "react"
+import { X, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import type { Project } from "@/lib/projects"
 
 interface ProjectSidebarProps {
   isOpen: boolean
   onClose: () => void
+  projects: Project[]
+  onNewProject: () => void
+  onRename: (project: Project) => void
+  onDelete: (project: Project) => void
   className?: string
 }
 
 export function ProjectSidebar({
   isOpen,
   onClose,
+  projects,
+  onNewProject,
+  onRename,
+  onDelete,
   className,
 }: ProjectSidebarProps) {
+  // ── Mobile backdrop detection ─────────────────────────────────
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener("resize", check)
+    return () => window.removeEventListener("resize", check)
+  }, [])
+
+  const owned = projects.filter((p) => p.isOwned)
+  const shared = projects.filter((p) => !p.isOwned)
+
   return (
     <>
+      {/* Mobile backdrop — tap outside to close */}
+      {isOpen && isMobile && (
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm"
+          onClick={onClose}
+        />
+      )}
+
       {/* Floating sidebar — slides in from left, does not push content */}
       <aside
         data-slot="project-sidebar"
@@ -59,29 +91,59 @@ export function ProjectSidebar({
             </TabsTrigger>
           </TabsList>
 
+          {/* My Projects tab */}
           <TabsContent value="my-projects" className="flex-1 min-h-0">
             <ScrollArea className="h-full">
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center gap-2">
-                <p className="text-sm text-muted-foreground">
-                  No projects yet.
-                </p>
-                <p className="text-xs text-muted-foreground/60">
-                  Create a new project to get started.
-                </p>
-              </div>
+              {owned.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-center gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    No projects yet.
+                  </p>
+                  <p className="text-xs text-muted-foreground/60">
+                    Create a new project to get started.
+                  </p>
+                </div>
+              ) : (
+                <ul className="py-1">
+                  {owned.map((project) => (
+                    <ProjectItem
+                      key={project.id}
+                      project={project}
+                      showActions
+                      onRename={onRename}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </ul>
+              )}
             </ScrollArea>
           </TabsContent>
 
+          {/* Shared tab */}
           <TabsContent value="shared" className="flex-1 min-h-0">
             <ScrollArea className="h-full">
-              <div className="flex flex-col items-center justify-center py-16 px-4 text-center gap-2">
-                <p className="text-sm text-muted-foreground">
-                  No shared projects.
-                </p>
-                <p className="text-xs text-muted-foreground/60">
-                  Projects shared with you will appear here.
-                </p>
-              </div>
+              {shared.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-center gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    No shared projects.
+                  </p>
+                  <p className="text-xs text-muted-foreground/60">
+                    Projects shared with you will appear here.
+                  </p>
+                </div>
+              ) : (
+                <ul className="py-1">
+                  {shared.map((project) => (
+                    <ProjectItem
+                      key={project.id}
+                      project={project}
+                      showActions={false}
+                      onRename={onRename}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </ul>
+              )}
             </ScrollArea>
           </TabsContent>
         </Tabs>
@@ -93,6 +155,7 @@ export function ProjectSidebar({
             className="w-full gap-2"
             variant="default"
             size="sm"
+            onClick={onNewProject}
           >
             <Plus className="h-4 w-4" />
             New Project
@@ -100,5 +163,112 @@ export function ProjectSidebar({
         </div>
       </aside>
     </>
+  )
+}
+
+// ── Project list item ──────────────────────────────────────────
+
+interface ProjectItemProps {
+  project: Project
+  showActions: boolean
+  onRename: (project: Project) => void
+  onDelete: (project: Project) => void
+}
+
+function ProjectItem({
+  project,
+  showActions,
+  onRename,
+  onDelete,
+}: ProjectItemProps) {
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  return (
+    <li className="relative group">
+      <div
+        className={cn(
+          "flex items-center justify-between px-3 py-2 rounded-md mx-1",
+          "hover:bg-accent transition-colors cursor-pointer"
+        )}
+      >
+        {/* Project name + slug */}
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm font-medium text-foreground truncate">
+            {project.name}
+          </span>
+          <span className="text-xs text-muted-foreground/60 truncate">
+            {project.slug}
+          </span>
+        </div>
+
+        {/* Action menu — owned projects only */}
+        {showActions && (
+          <div className="relative shrink-0 ml-2">
+            <button
+              id={`project-menu-${project.id}`}
+              aria-label={`Actions for ${project.name}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setMenuOpen((prev) => !prev)
+              }}
+              className={cn(
+                "inline-flex items-center justify-center rounded-md p-1",
+                "text-muted-foreground hover:text-foreground hover:bg-muted",
+                "opacity-0 group-hover:opacity-100 focus:opacity-100",
+                "transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              )}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+
+            {/* Dropdown */}
+            {menuOpen && (
+              <>
+                {/* Click-away */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <div
+                  className={cn(
+                    "absolute right-0 top-full mt-1 z-50 w-36",
+                    "bg-popover border border-border rounded-md shadow-lg py-1"
+                  )}
+                >
+                  <button
+                    id={`rename-${project.id}`}
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onRename(project)
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-1.5 text-sm",
+                      "text-foreground hover:bg-accent transition-colors"
+                    )}
+                  >
+                    <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    Rename
+                  </button>
+                  <button
+                    id={`delete-${project.id}`}
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onDelete(project)
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-1.5 text-sm",
+                      "text-destructive hover:bg-accent transition-colors"
+                    )}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </li>
   )
 }
