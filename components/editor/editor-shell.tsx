@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { CreateProjectDialog } from "@/components/editor/dialogs/create-project-dialog"
@@ -16,6 +16,14 @@ interface EditorShellProps {
 export function EditorShell({ children }: EditorShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const dialogs = useProjectDialogs()
+
+  // Allow child pages to open the Create dialog via a custom DOM event
+  // so they don't need to duplicate dialog state.
+  useEffect(() => {
+    const handler = () => dialogs.openCreate()
+    window.addEventListener("editor:open-create-dialog", handler)
+    return () => window.removeEventListener("editor:open-create-dialog", handler)
+  }, [dialogs.openCreate])
 
   return (
     <div className="flex flex-col min-h-screen">
