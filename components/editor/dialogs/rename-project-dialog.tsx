@@ -46,7 +46,7 @@ export function RenameProjectDialog({
             value={nameValue}
             onChange={(e) => onNameChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && nameValue.trim()) onSubmit()
+              if (e.key === "Enter" && nameValue.trim() && !isLoading) onSubmit()
             }}
           />
         </div>
@@ -60,7 +60,7 @@ export function RenameProjectDialog({
             onClick={onSubmit}
             disabled={!nameValue.trim() || isLoading}
           >
-            Rename
+            {isLoading ? "Renaming..." : "Rename"}
           </Button>
         </DialogFooter>
       </DialogContent>

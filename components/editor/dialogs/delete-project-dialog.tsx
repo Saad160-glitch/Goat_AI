@@ -50,7 +50,7 @@ export function DeleteProjectDialog({
             onClick={onConfirm}
             disabled={isLoading}
           >
-            Delete project
+            {isLoading ? "Deleting..." : "Delete project"}
           </Button>
         </DialogFooter>
       </DialogContent>

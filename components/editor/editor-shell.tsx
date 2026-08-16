@@ -1,21 +1,30 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { CreateProjectDialog } from "@/components/editor/dialogs/create-project-dialog"
 import { RenameProjectDialog } from "@/components/editor/dialogs/rename-project-dialog"
 import { DeleteProjectDialog } from "@/components/editor/dialogs/delete-project-dialog"
-import { useProjectDialogs } from "@/hooks/use-project-dialogs"
-import { MOCK_PROJECTS } from "@/lib/projects"
+import { useProjectActions } from "@/hooks/use-project-actions"
+import type { Project } from "@/lib/projects"
 
 interface EditorShellProps {
   children: React.ReactNode
+  projects?: Project[]
 }
 
-export function EditorShell({ children }: EditorShellProps) {
+export function EditorShell({ children, projects = [] }: EditorShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const dialogs = useProjectDialogs()
+  const dialogs = useProjectActions()
+
+  // Allow child pages to open the Create dialog via a custom DOM event
+  // so they don't need to duplicate dialog state.
+  useEffect(() => {
+    const handler = () => dialogs.openCreate()
+    window.addEventListener("editor:open-create-dialog", handler)
+    return () => window.removeEventListener("editor:open-create-dialog", handler)
+  }, [dialogs.openCreate])
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -29,7 +38,7 @@ export function EditorShell({ children }: EditorShellProps) {
       <ProjectSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        projects={MOCK_PROJECTS}
+        projects={projects}
         onNewProject={dialogs.openCreate}
         onRename={dialogs.openRename}
         onDelete={dialogs.openDelete}
@@ -45,6 +54,7 @@ export function EditorShell({ children }: EditorShellProps) {
         open={dialogs.kind === "create"}
         nameValue={dialogs.nameValue}
         slug={dialogs.slug}
+        roomId={dialogs.roomId}
         isLoading={dialogs.isLoading}
         onNameChange={dialogs.setNameValue}
         onSubmit={dialogs.submitCreate}

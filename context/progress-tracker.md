@@ -93,13 +93,62 @@ change.
     rendered at shell level; mock projects passed to sidebar
   - `npm run build` passes cleanly
 
+- **Project API Routes (spec: 05-project-apiis)**
+  - Created `app/api/projects/route.ts` —
+    `GET` returns all owned projects (ordered by
+    `createdAt` desc); `POST` creates a project with
+    `ownerId = userId`, defaulting name to
+    `"Untitled Project"` when omitted
+  - Created `app/api/projects/[projectId]/route.ts` —
+    `PATCH` renames (owner-only); `DELETE` deletes
+    (owner-only); both return `404` if project is
+    missing and `403` if caller is not the owner
+  - All four handlers return `401` for unauthenticated
+    requests; Clerk `userId` used as `ownerId` throughout
+  - No UI wiring — backend only
+  - Installed `@prisma/client@7` (was missing from
+    `package.json`; generated client requires it)
+  - Removed dead Accelerate branch from `lib/prisma.ts`
+    (`@prisma/extension-accelerate` is not installed;
+    Turbopack static-analysed the dead `require()` and
+    errored)
+  - `npm run build` passes cleanly
+
+- **Wire Editor Home & Project Actions (spec: 06-wire-editor-home)**
+  - Updated `lib/projects.ts` with server-side project data
+    helpers (`getProjectsForCurrentUser()`, `getOwnedProjects()`,
+    `getSharedProjects()`, and `slugifyProjectName()`) querying
+    Prisma directly with Clerk auth
+  - Updated `app/editor/layout.tsx` to be an async Server Component
+    that fetches projects server-side on initial load without
+    client-side waterfalls and passes them down to `EditorShell`
+  - Created `hooks/use-project-actions.ts` managing:
+    - Create: dialog state, name input, short random suffix generator,
+      derived room ID slug preview, `POST /api/projects` call, and
+      redirect to `/editor/${project.id}`
+    - Rename: target project state, `PATCH /api/projects/[id]`,
+      dialog close, and `router.refresh()`
+    - Delete: target project state, `DELETE /api/projects/[id]`,
+      active workspace redirect to `/editor`, and `router.refresh()`
+  - Re-exported `useProjectActions` as `useProjectDialogs` in
+    `hooks/use-project-dialogs.ts` for clean backward compatibility
+  - Updated `app/api/projects/route.ts` to accept optional `id` parameter
+    in `POST` body so Liveblocks room ID and Prisma project ID stay aligned
+  - Updated dialogs (`CreateProjectDialog`, `RenameProjectDialog`,
+    `DeleteProjectDialog`) to display room ID preview, target project name,
+    and visual loading states
+  - Updated `components/editor/project-sidebar.tsx` and `ProjectItem` to
+    navigate to `/editor/${project.id}` on click while retaining action
+    dropdown menus
+  - `npm run build` passes cleanly
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Next feature spec (05-…)
+- Next feature spec (07-…)
 
 ## Open Questions
 
@@ -134,6 +183,13 @@ change.
   `proxy.ts` as the middleware filename. The skill docs
   confirm `proxy.ts` replaces `middleware.ts` from
   Next.js 16+.
+- **Server Data Fetching without client waterfalls**: Projects
+  are loaded on the server in `app/editor/layout.tsx` using
+  `getProjectsForCurrentUser()`, eliminating initial load
+  client waterfalls and hydrating the sidebar instantly.
+- **Liveblocks Room ID Alignment**: `POST /api/projects` accepts
+  an optional `id` so that the computed room ID (slug + unique suffix)
+  becomes the project ID in the database and the Liveblocks room ID.
 
 ## Session Notes
 
