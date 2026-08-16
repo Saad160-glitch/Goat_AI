@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button"
 interface CreateProjectDialogProps {
   open: boolean
   nameValue: string
-  slug: string
+  slug?: string
+  roomId?: string
   isLoading: boolean
   onNameChange: (value: string) => void
   onSubmit: () => void
@@ -25,11 +26,14 @@ export function CreateProjectDialog({
   open,
   nameValue,
   slug,
+  roomId,
   isLoading,
   onNameChange,
   onSubmit,
   onClose,
 }: CreateProjectDialogProps) {
+  const displayId = roomId || slug
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-md">
@@ -48,15 +52,17 @@ export function CreateProjectDialog({
             value={nameValue}
             onChange={(e) => onNameChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && nameValue.trim()) onSubmit()
+              if (e.key === "Enter" && nameValue.trim() && !isLoading) onSubmit()
             }}
           />
-          {/* Live slug preview */}
+          {/* Room ID preview */}
           <p className="text-xs text-muted-foreground min-h-[1.25rem]">
-            {slug ? (
+            {displayId ? (
               <>
-                <span className="font-medium text-foreground/60">Slug: </span>
-                {slug}
+                <span className="font-medium text-foreground/70">Room ID: </span>
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-[11px]">
+                  {displayId}
+                </code>
               </>
             ) : null}
           </p>
@@ -71,7 +77,7 @@ export function CreateProjectDialog({
             onClick={onSubmit}
             disabled={!nameValue.trim() || isLoading}
           >
-            Create project
+            {isLoading ? "Creating..." : "Create project"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { X, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -112,6 +113,9 @@ export function ProjectSidebar({
                       showActions
                       onRename={onRename}
                       onDelete={onDelete}
+                      onSelect={() => {
+                        if (isMobile) onClose()
+                      }}
                     />
                   ))}
                 </ul>
@@ -140,6 +144,9 @@ export function ProjectSidebar({
                       showActions={false}
                       onRename={onRename}
                       onDelete={onDelete}
+                      onSelect={() => {
+                        if (isMobile) onClose()
+                      }}
                     />
                   ))}
                 </ul>
@@ -173,6 +180,7 @@ interface ProjectItemProps {
   showActions: boolean
   onRename: (project: Project) => void
   onDelete: (project: Project) => void
+  onSelect?: () => void
 }
 
 function ProjectItem({
@@ -180,6 +188,7 @@ function ProjectItem({
   showActions,
   onRename,
   onDelete,
+  onSelect,
 }: ProjectItemProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -191,15 +200,19 @@ function ProjectItem({
           "hover:bg-accent transition-colors cursor-pointer"
         )}
       >
-        {/* Project name + slug */}
-        <div className="flex flex-col min-w-0">
+        {/* Project name + slug navigation */}
+        <Link
+          href={`/editor/${project.id}`}
+          onClick={onSelect}
+          className="flex flex-col min-w-0 flex-1 pr-2"
+        >
           <span className="text-sm font-medium text-foreground truncate">
             {project.name}
           </span>
-          <span className="text-xs text-muted-foreground/60 truncate">
+          <span className="text-xs text-muted-foreground/60 truncate font-mono">
             {project.slug}
           </span>
-        </div>
+        </Link>
 
         {/* Action menu — owned projects only */}
         {showActions && (
@@ -208,6 +221,7 @@ function ProjectItem({
               id={`project-menu-${project.id}`}
               aria-label={`Actions for ${project.name}`}
               onClick={(e) => {
+                e.preventDefault()
                 e.stopPropagation()
                 setMenuOpen((prev) => !prev)
               }}
@@ -227,23 +241,30 @@ function ProjectItem({
                 {/* Click-away */}
                 <div
                   className="fixed inset-0 z-40"
-                  onClick={() => setMenuOpen(false)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setMenuOpen(false)
+                  }}
                 />
                 <div
                   className={cn(
                     "absolute right-0 top-full mt-1 z-50 w-36",
                     "bg-popover border border-border rounded-md shadow-lg py-1"
                   )}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     id={`rename-${project.id}`}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
                       setMenuOpen(false)
                       onRename(project)
                     }}
                     className={cn(
                       "w-full flex items-center gap-2 px-3 py-1.5 text-sm",
-                      "text-foreground hover:bg-accent transition-colors"
+                      "text-foreground hover:bg-accent transition-colors text-left"
                     )}
                   >
                     <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
@@ -251,13 +272,15 @@ function ProjectItem({
                   </button>
                   <button
                     id={`delete-${project.id}`}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
                       setMenuOpen(false)
                       onDelete(project)
                     }}
                     className={cn(
                       "w-full flex items-center gap-2 px-3 py-1.5 text-sm",
-                      "text-destructive hover:bg-accent transition-colors"
+                      "text-destructive hover:bg-accent transition-colors text-left"
                     )}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
