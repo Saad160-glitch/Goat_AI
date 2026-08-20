@@ -142,13 +142,68 @@ change.
     dropdown menus
   - `npm run build` passes cleanly
 
+- **Editor Workspace Shell (spec: 07-editor-workspace-shell)**
+  - Created `lib/project-access.ts` with:
+    - `getCurrentClerkIdentity()` — returns `{ userId, primaryEmail,
+      allEmails }` using Clerk `auth()` + `currentUser()`
+    - `hasProjectAccess()` — queries Prisma for the project, checks
+      owner (`ownerId === userId`) or collaborator email match;
+      returns `{ project, access }` tuple
+  - Created `components/editor/access-denied.tsx` — centered
+    full-viewport layout with `LockKeyhole` icon, short message, and
+    a `buttonVariants`-styled back-to-dashboard link
+  - Created `app/editor/[roomID]/page.tsx` — async server component:
+    unauthenticated → `redirect('/sign-in')`; missing or unauthorized
+    project → `<AccessDenied />`; authorized → renders `<WorkspaceShell />`
+  - Created `components/editor/workspace-shell.tsx` — client component
+    filling the `main` area with: workspace top bar (project name,
+    Share button placeholder, AI sidebar toggle), dark canvas placeholder,
+    and collapsible right AI sidebar placeholder
+  - Updated `components/editor/project-sidebar.tsx` — `ProjectItem`
+    now uses `usePathname()` to auto-highlight the active project
+    (`bg-accent`) with no prop drilling
+  - `npm run build` passes cleanly; `/editor/[roomID]` is a dynamic
+    server-rendered route (`ƒ`)
+
+- **Share Dialog (spec: 08-share-dialog)**
+  - Created `components/editor/dialogs/share-dialog.tsx` — client
+    component with:
+    - Share button (`Share2` icon) in the workspace navbar that opens
+      a shadcn `Dialog`
+    - Owner: email input + `UserPlus` button to invite collaborators
+      (Enter key submits); inline invite error display
+    - Owner: per-collaborator remove button (X icon, hover-reveals,
+      red on hover) with `Loader2` spinner during removal
+    - Both owner and collaborator: enriched collaborator list showing
+      Clerk avatar (`imageUrl`) or initials fallback, display name,
+      and email; falls back to email-only if Clerk user not found
+    - Both: copy-project-link row with temporary "Copied!" feedback
+      (2 s) using `Check` icon, falling back to email when no Clerk
+      user is found
+  - Wired `<ShareDialog projectId isOwner projectName />` into
+    `components/editor/workspace-shell.tsx` navbar (right section)
+  - Created `app/api/projects/[projectId]/collaborators/route.ts`:
+    - `GET` — lists collaborators enriched via Clerk
+      `getUserList({ emailAddress })`; accessible by owner or any
+      collaborator; returns `{ collaborators, isOwner }`
+    - `POST` — invite by email (owner-only, server-enforced);
+      validates email format; rejects self-invite and duplicate invite
+  - Created `app/api/projects/[projectId]/collaborators/[email]/route.ts`:
+    - `DELETE` — removes collaborator by email (owner-only,
+      server-enforced); decodes URI-encoded email param
+  - `ProjectCollaborator` model already in schema + migration
+    (`prisma/models/project.prisma`,
+    `prisma/migrations/20260809182258_init_project_models`)
+  - `npm run build` passes cleanly; all three collaborator routes
+    appear in the build manifest as dynamic (`ƒ`)
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Next feature spec (07-…)
+- Next feature spec (09-…)
 
 ## Open Questions
 
@@ -183,13 +238,19 @@ change.
   `proxy.ts` as the middleware filename. The skill docs
   confirm `proxy.ts` replaces `middleware.ts` from
   Next.js 16+.
-- **Server Data Fetching without client waterfalls**: Projects
-  are loaded on the server in `app/editor/layout.tsx` using
-  `getProjectsForCurrentUser()`, eliminating initial load
-  client waterfalls and hydrating the sidebar instantly.
-- **Liveblocks Room ID Alignment**: `POST /api/projects` accepts
-  an optional `id` so that the computed room ID (slug + unique suffix)
-  becomes the project ID in the database and the Liveblocks room ID.
+- **Server-side access gate on workspace routes**: `app/editor/[roomID]/page.tsx`
+  is an async server component. It calls `getCurrentClerkIdentity()` before
+  rendering anything — unauthenticated sessions are redirected at the RSC
+  level, not via middleware alone. This keeps the access pattern consistent
+  with the protected-first middleware strategy.
+- **`buttonVariants` on Link for CTA links**: The shadcn `Button` in this
+  project is built on `@base-ui/react/button` and does not support
+  `asChild`. When a button-styled link is needed, apply `buttonVariants()`
+  directly to a `<Link>` element instead.
+- **Active sidebar highlight via `usePathname`**: `ProjectItem` reads
+  `usePathname()` internally to derive its own active state — no prop
+  drilling or context needed. The component is already a client component
+  so this adds no extra `'use client'` boundaries.
 
 ## Session Notes
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { X, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -191,13 +192,16 @@ function ProjectItem({
   onSelect,
 }: ProjectItemProps) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const pathname = usePathname()
+  const isActive = pathname === `/editor/${project.id}`
 
   return (
     <li className="relative group">
       <div
         className={cn(
           "flex items-center justify-between px-3 py-2 rounded-md mx-1",
-          "hover:bg-accent transition-colors cursor-pointer"
+          "hover:bg-accent transition-colors cursor-pointer",
+          isActive && "bg-accent"
         )}
       >
         {/* Project name + slug navigation */}
