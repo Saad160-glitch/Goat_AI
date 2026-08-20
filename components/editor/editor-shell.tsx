@@ -26,6 +26,14 @@ export function EditorShell({ children, projects = [] }: EditorShellProps) {
     return () => window.removeEventListener("editor:open-create-dialog", handler)
   }, [dialogs.openCreate])
 
+  // Allow workspace pages to toggle the sidebar via a custom DOM event
+  // without prop drilling through the page hierarchy.
+  useEffect(() => {
+    const handler = () => setIsSidebarOpen((prev) => !prev)
+    window.addEventListener("editor:toggle-sidebar", handler)
+    return () => window.removeEventListener("editor:toggle-sidebar", handler)
+  }, [])
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Fixed top navbar */}
